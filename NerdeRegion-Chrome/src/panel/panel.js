@@ -13,6 +13,10 @@
 const eventsContainer = document.querySelector("#events");
 const eventsList = document.querySelector("#events ol");
 const regionsContainer = document.querySelector("#regions");
+const persistButton = document.querySelector("#persistButton");
+const accNameButton = document.querySelector("#accNameButton");
+const resetButton = document.querySelector("#resetButton");
+const filterStyle = document.querySelector("#filterStyle");
 
 let pageInitialized = false;
 let useCSSGroups = false;
@@ -29,9 +33,21 @@ const htmlEncode = (str) => {
     .replace(/>/g, "&gt;");
 };
 
-function padZero(number, length) {
-  return ("0".repeat(length) + number).slice(-length);
-}
+const getTimeStamp = () => {
+  const currentTime = new Date();
+  const padZero = (num, size) => {
+    let s = num + "";
+    while (s.length < size) s = "0" + s;
+    return s;
+  };
+  return `${padZero(currentTime.getHours(), 2)}:${padZero(
+    currentTime.getMinutes(),
+    2
+  )}:${padZero(currentTime.getSeconds(), 2)}:${padZero(
+    currentTime.getMilliseconds(),
+    3
+  )}`;
+};
 
 function route(message) {
   switch (message.content.action) {
@@ -69,17 +85,6 @@ function openInspector(path) {
   );
 }
 
-function getTimeStamp() {
-  const currentTime = new Date();
-  return `${padZero(currentTime.getHours(), 2)}:${padZero(
-    currentTime.getMinutes(),
-    2
-  )}:${padZero(currentTime.getSeconds(), 2)}:${padZero(
-    currentTime.getMilliseconds(),
-    3
-  )}`;
-}
-
 function addTab(message) {
   const timestamp = getTimeStamp();
   watchNum = message.data.regionNum;
@@ -90,13 +95,12 @@ function addTab(message) {
       message.inDom ? "found in" : "added to"
     } DOM <div class="time">${timestamp}</div></li>`
   );
-  $(regionsContainer).append(
-    `<li role="none" class="region region-${message.data.regionNum}">
-				<button role="tab" aria-selected="false" aria-controls="events" class="tab" data-region="${message.data.regionNum}">
-					<em class="id">${message.data.regionNum}</em>${message.data.regionPath}
-				</button>
-			</li>`
-  );
+  regionsContainer.insertAdjacentHTML('beforeend', `
+    <li role="none" class="region region-${message.data.regionNum}">
+      <button role="tab" aria-selected="false" aria-controls="events" class="tab" data-region="${message.data.regionNum}">
+        <em class="id">${message.data.regionNum}</em>${message.data.regionPath}
+      </button>
+    </li>`);
 }
 
 function addToEventList(html, timestamp = false) {
@@ -106,7 +110,7 @@ function addToEventList(html, timestamp = false) {
         eventsContainer.offsetHeight -
         eventsContainer.scrollHeight
     ) < 10;
-  $(eventsList).append(html);
+  eventsList.insertAdjacentHTML('beforeend', html);
   if (isScrollAble) {
     eventsContainer.scrollTop = eventsContainer.scrollHeight;
   }
@@ -120,9 +124,8 @@ function panelShown() {
 
 function removeTab(tabId) {
   const timestamp = getTimeStamp();
-  $(regionsContainer)
-    .find(`li.region-${tabId} > button`)
-    .addClass("gone");
+  const button = regionsContainer.querySelector(`li.region-${tabId} > button`);
+  button.classList.add("gone");
   addToEventList(
     `<li class="removal region-${tabId}">Region #${tabId} was removed from DOM, or is no longer a live region <div class="time">${timestamp}</div></li>`
   );
@@ -132,14 +135,12 @@ function processPageLoad(message) {
   if (!message.framed) {
     const timestamp = getTimeStamp();
     if (!usePersistentLog) {
-      $(eventsList).empty();
-      $(regionsContainer)
-        .children("li.region")
-        .remove();
+      eventsList.innerHTML = '';
+      const regionElements = regionsContainer.querySelectorAll("li.region");
+      regionElements.forEach(el => el.remove());
     } else {
-      $(regionsContainer)
-        .find("li.region > button")
-        .addClass("gone");
+      const buttons = regionsContainer.querySelectorAll("li.region > button");
+      buttons.forEach(button => button.classList.add("gone"));
     }
     addToEventList(
       `<li class="url"><div class="ellipsis">Page Loaded [${message.data}]<div><div class="time">${timestamp}</div></li>`
@@ -199,68 +200,51 @@ function processIncoming(message) {
   addToEventList(regionCode);
 }
 
-$("#persistButton").on("click", function() {
-  if ($(this).hasClass("on")) {
-    $(this).removeClass("on");
+// Event Listeners
+persistButton.addEventListener('click', function() {
+  if (this.classList.contains("on")) {
+    this.classList.remove("on");
     usePersistentLog = false;
   } else {
-    $(this).addClass("on");
+    this.classList.add("on");
     usePersistentLog = true;
   }
 });
 
-$("#accNameButton").on("click", function() {
-  if ($(this).hasClass("on")) {
-    $(this).removeClass("on");
-    $(eventsList).removeClass("show-accname");
-    useAccName = false;
+accNameButton.addEventListener('click', function() {
+  if (this.classList.contains("on")) {
+    this.classList.remove("on");
+    eventsList.classList.remove("show-accname");
   } else {
-    $(this).addClass("on");
-    useAccName = true;
-    $(eventsList).addClass("show-accname");
+    this.classList.add("on");
+    eventsList.classList.add("show-accname");
   }
 });
 
-$("#resetButton").on("click", function() {
-  $(eventsList).empty();
-  $(regionsContainer)
-    .children("li.region")
-    .remove();
-  $(regionsContainer)
-    .find("button.all")
-    .click();
+resetButton.addEventListener('click', function() {
+  eventsList.innerHTML = '';
+  const regionElements = regionsContainer.querySelectorAll("li.region");
+  regionElements.forEach(el => el.remove());
+  const buttons = regionsContainer.querySelectorAll("li.region > button");
+  buttons.forEach(button => button.classList.add("gone"));
   sendCommandToPage("reset");
 });
 
-$(eventsList).on("click", ".path a", function(event) {
-  openInspector(event.target.text);
-});
-
-$(regionsContainer).on("click", "li > button", function(event) {
-  const region = event.target.dataset.region;
-  if (region === "all") {
-    $(eventsList).removeClass("filtered");
-    $(regionsContainer)
-      .find("li > button.active")
-      .removeClass("active")
-      .attr("aria-selected", "false");
-    $(event.target)
-      .addClass("active")
-      .attr("aria-selected", "true");
-    $("#filterStyle").empty();
-  } else if (parseInt(region) > 0) {
-    $(eventsList).addClass("filtered");
-    $(regionsContainer)
-      .find("li > button.active")
-      .removeClass("active")
-      .attr("aria-selected", "false");
-    $(event.target)
-      .addClass("active")
-      .attr("aria-selected", "true");
-    $("#filterStyle").text(
-      `.region-${parseInt(region)}{display:block!important}`
-    );
+eventsList.addEventListener('click', function(event) {
+  if (event.target.matches('.path a')) {
+    event.preventDefault();
+    openInspector(event.target.parentNode.querySelector('a').textContent);
   }
 });
 
-$("body").addClass(chrome.devtools.panels.themeName);
+regionsContainer.addEventListener('click', function(event) {
+  if (event.target.matches('li > button')) {
+    eventsList.classList.remove("filtered");
+    const buttons = regionsContainer.querySelectorAll("li > button");
+    buttons.forEach(button => button.classList.remove("active"));
+    event.target.classList.add("active");
+    filterStyle.innerHTML = '';
+  }
+});
+
+document.body.classList.add(chrome.devtools.panels.themeName);

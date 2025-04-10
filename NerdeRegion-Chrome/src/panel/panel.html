@@ -10,32 +10,29 @@
 <header>
     <div id="toolbar">
         <div class="group">
-            <button id="resetButton" class="toolbarButton reset">Reset</button>
+            <button id="resetButton" class="toolbarButton reset" title="Reset">Reset</button>
         </div>
-        <div class="group last">
-            <button id="persistButton" class="toolbarButton check">Preserve Log</button>
-            <button id="accNameButton" class="toolbarButton check">Calculate Name (Beta)</button>
+        <div class="group">
+            <button id="persistButton" class="toolbarButton check" title="Persist Log">Persist Log</button>
+        </div>
+        <div class="group">
+            <button id="accNameButton" class="toolbarButton check" title="Show Accessible Name">Show Accessible Name</button>
         </div>
         <div class="group right">
-            <!--button id="infoButton" class="toolbarButton about" aria-label="About NerdeRegion"><span>i</span></button-->
+            <a href="https://github.com/wizzyfx/nerdeRegionPlugIn" class="about" title="About" target="_blank"><span>?</span></a>
         </div>
     </div>
 </header>
 <main>
     <div id="logs">
-        <ul id="regions" role="tablist">
-            <li role="none">
-                <button role="tab" aria-selected="true" aria-controls="events" class="tab all active" data-region="all">
-                    All Regions
-                </button>
-            </li>
-        </ul>
-        <div id="events" role="tabpanel" aria-label="Live Region Log">
+        <div id="regions">
+            <button role="tab" aria-selected="true" aria-controls="events" class="tab all" data-region="all">All Regions</button>
+        </div>
+        <div id="events">
             <ol></ol>
         </div>
     </div>
 </main>
-<script src="/vendor/jquery-3.2.1.slim.min.js"></script>
 <script src="panel.js"></script>
 </body>
 </html>
